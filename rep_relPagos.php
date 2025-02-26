@@ -456,19 +456,22 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                 ];
                 $pagosAgrupadosPorForma = [];
                 foreach ($data as $row) { 
-                    // Convertir 'vtipo_pago' a 'N' o 'S'
-                    $formaPago = $mapFormaPago[$row['vtipo_pago']] ?? null;
-					
-                	// Asignar el tipo de banco según la forma de pago
+    				// Convertir 'vtipo_pago' a 'N' o 'S'
+    				$formaPago = $mapFormaPago[$row['vtipo_pago']] ?? null;
+    
+    				// Identificar el banco correctamente
     				if ($formaPago == "N") {
-        					$tipoBanco = (strpos($row['vtipo_pago'], 'Con Tarjeta Banorte') !== false) ? 'BANORTE' : 'SANTANDER';
-    				} elseif ($formaPago == "S") {
-        				$tipoBanco = 'Por transferencia';
-    				}
-                    if (!empty($formaPago)) {
-                        $pagosAgrupadosPorForma[$formaPago][$row['unidadN']][] = $row;
-                    }
-                }
+        					if (!empty($row['ctabanco'])) {
+            						$tipoBanco = 'BANORTE';
+        					} elseif (!empty($row['ctabanco_santander'])) {
+            						$tipoBanco = 'SANTANDER';
+        					} else {
+            					$tipoBanco = 'DESCONOCIDO'; // En caso de error o datos incompletos
+        					}
+    					} elseif ($formaPago == "S") {
+        					$tipoBanco = 'Por transferencia';
+    					}
+				}
                 $totalesPorTipoPago = [];
                 foreach ($dataTipo as $total) {
                     $totalesPorTipoPago[$total['Tipo_de_Pago']] = $total;
@@ -499,14 +502,16 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                 { 
                 	// Crear un array para almacenar los tipos de banco
     				$tiposBanco = [];
-
     				// Verificar los tipos de banco en las unidades
     				foreach ($unidades as $empleados) {
-        			// Suponiendo que el tipo de banco está en $empleados['vtipo_pago']
-        			if (strpos($empleados[0]['vtipo_pago'], 'Banorte') !== false) {
-            				$tiposBanco['BANORTE'] = true;
-        			} elseif (strpos($empleados[0]['vtipo_pago'], 'Santander') !== false) {
-            				$tiposBanco['SANTANDER'] = true;
+        				// Verificar cada empleado dentro de la unidad
+        				foreach ($empleados as $empleado) {
+            				if (!empty($empleado['ctabanco'])) {
+                				$tiposBanco['BANORTE'] = true;
+            				} 
+            				if (!empty($empleado['ctabanco_santander'])) {
+                				$tiposBanco['SANTANDER'] = true;
+            				}
         				}
     				}
                     foreach ($unidades as $unidad => $empleados) 
@@ -547,24 +552,27 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                                 if (!isset($fondosTarjeta[$fondoPrefix])) {
                                     $fondosTarjeta[$fondoPrefix]['valores'] = [0, 0, 0, 0, 0];
                                 }
-                                if ($formaPago == 'N' && $tiposBanco['BANORTE'] = true ) {
-                                    $fondosTarjeta[$fondoPrefix]['valores'][0] += $row['percepciones'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][1] += $row['canasta'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][2] += $row['deducciones'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][4] += $row['total'];
+                                if ($formaPago == 'N' && !empty($row['ctabanco'])) {
+                                	
+                                    	$fondosTarjeta[$fondoPrefix]['valores'][0] += $row['percepciones'];
+                                    	$fondosTarjeta[$fondoPrefix]['valores'][1] += $row['canasta'];
+                                    	$fondosTarjeta[$fondoPrefix]['valores'][2] += $row['deducciones'];
+                                    	$fondosTarjeta[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
+                                    	$fondosTarjeta[$fondoPrefix]['valores'][4] += $row['total'];
+                                    
+                                    
                                 }
-                                
                             	//fondos para tarjeta santander
 								if (!isset($fondosSantander[$fondoPrefix])) {
-                                    $fondosTarjeta[$fondoPrefix]['valores'] = [0, 0, 0, 0, 0];
+                                    $fondosSantander[$fondoPrefix]['valores'] = [0, 0, 0, 0, 0];
                                 }
-                                if ($formaPago == 'N' && $tiposBanco['SANTANDER'] = true) {
-                                    $fondosTarjeta[$fondoPrefix]['valores'][0] += $row['percepciones'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][1] += $row['canasta'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][2] += $row['deducciones'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
-                                    $fondosTarjeta[$fondoPrefix]['valores'][4] += $row['total'];
+                                if ($formaPago == 'N' && !empty($row['ctabanco_santander'])) 
+                                {
+                                   	 	$fondosSantander[$fondoPrefix]['valores'][0] += $row['percepciones'];
+                                    	$fondosSantander[$fondoPrefix]['valores'][1] += $row['canasta'];
+                                    	$fondosSantander[$fondoPrefix]['valores'][2] += $row['deducciones'];
+                                    	$fondosSantander[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
+                                    	$fondosSantander[$fondoPrefix]['valores'][4] += $row['total'];
                                 }
                                 // Duplicamos los valores en el nuevo array acumulado
                                 if (!isset($fondosTransferencia[$fondoPrefix])) {
@@ -578,7 +586,6 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                                     $fondosTransferencia[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
                                     $fondosTransferencia[$fondoPrefix]['valores'][4] += $row['total'];
                                 }
-                                
                             }
 
                             echo "<tr>
@@ -639,7 +646,7 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
         						if (isset($tiposBanco['BANORTE'])) {
             					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
         					}
-        				if (isset($tiposBanco['SANTANDER'])) {
+        				if ($formaPago == "N" && isset($tiposBanco['SANTANDER'])) {
             					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
         					}
     					} else {
