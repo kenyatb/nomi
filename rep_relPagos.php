@@ -15,7 +15,14 @@ $porTransferencia = in_array(4, $pago);
 $santander = in_array(5, $pago);
 $destino = isset($_POST['optionDestino']) ? intval($_POST['optionDestino']) : 6;
 $total_unidades = isset($_POST['optionTotUnidad']) ? intval($_POST['optionTotUnidad']) : 0;
-
+/*var_dump($catorcena);
+var_dump($concentrado);
+var_dump($pago);
+var_dump($conTarjeta);
+var_dump($porTransferencia);
+var_dump($santander);
+var_dump($destino);
+var_dump($total_unidades);*/
 $acumuladoDeFondos = [];
 $fondosTarjeta = [];
 $fondosTransferencia = [];
@@ -61,10 +68,11 @@ $queryDeps = "WITH datosBase AS (
             ELSE 'N'  -- Si tiene cuenta bancaria, se agrupa como 'N'
         END AS pagoCheque,
         CASE 
-            WHEN e.ctabanco != '' AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
-            THEN 'BANORTE'
-            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') AND e.ctabanco_santander != ''
-            THEN 'SANTANDER'
+            WHEN (e.ctabanco IS NOT NULL AND e.ctabanco <> '') THEN 'BANORTE'
+            WHEN (e.ctabanco_santander IS NOT NULL AND e.ctabanco_santander <> '') THEN 'SANTANDER'
+            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') 
+                 AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') THEN 'TRANSFERENCIA'
+            ELSE 'OTRO'
         END AS tipoBanco
     FROM tblnomsobres s
     INNER JOIN tblnomemplea e ON s.ficha = e.ficha
@@ -77,36 +85,39 @@ percepciones AS (
         unidadN, 
         deptoN, 
         pagoCheque,
-		tipoBanco, -- Para diferenciar Banorte y Santander
+        tipoBanco, -- Ahora incluido
         SUM(imp) AS percepciones
     FROM datosBase
     WHERE conc < 500 AND conc NOT IN (2, 4, 20)
     GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
 ),
+
 canasta AS (
     SELECT 
         idenDepDep, 
         unidadN, 
         deptoN, 
         pagoCheque,
-		tipoBanco, -- Para diferenciar Banorte y Santander
+        tipoBanco, -- Ahora incluido
         SUM(imp) AS canasta
     FROM datosBase
     WHERE conc IN (2, 4, 20)
-     GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
+    GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
 ),
+
 deducciones AS (
     SELECT 
         idenDepDep, 
         unidadN, 
         deptoN, 
         pagoCheque,
-		tipoBanco, 
+        tipoBanco, -- Ahora incluido
         SUM(imp) AS deducciones
     FROM datosBase
     WHERE conc >= 501 AND conc <> 555
-     GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
+    GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
 )
+
 SELECT 
     t4.descripcion AS Nombre_Depto,
     COALESCE(t4.fondo, '') AS fondo,
@@ -118,6 +129,7 @@ SELECT
     (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) AS total_efectivo, 
     (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) + COALESCE(t2.canasta, 0) AS total,
     t1.pagoCheque,
+    t1.tipoBanco,  -- Añadido aquí para mostrar el tipo de banco
     CASE 
         WHEN t1.pagoCheque = 'S' THEN 0
         WHEN t1.pagoCheque = 'N' THEN 1
@@ -140,7 +152,7 @@ GROUP BY
     t2.canasta, 
     t3.deducciones, 
     t1.pagoCheque,
-    t1.tipoBanco
+    t1.tipoBanco  -- Asegúrate de incluirlo en el GROUP BY
 ORDER BY 
     pagoCheque, 
     t4.unidadN, 
@@ -148,24 +160,26 @@ ORDER BY
     t4.fondo";
 $paramDeps = [$catorcena];
 $resultDeps = sqlsrv_query($conn, $queryDeps, $paramDeps);
+
 if ($resultDeps === false) {
     manejarError("Error en la consulta de concentrado: " . print_r(sqlsrv_errors(), true));
 }
+
 $vtipo_pago = '';
 $data = [];
+// Recorre los resultados
 while ($rowDeps = sqlsrv_fetch_array($resultDeps, SQLSRV_FETCH_ASSOC)) {
-    $rowDeps['vtipo_pago'] = ($porTransferencia && $rowDeps['pagoCheque'] == 'S') 
-    ? 'Por transferencia' 
-    : (($santander && $rowDeps['tipoBanco'] == 'SANTANDER' && $rowDeps['ctabanco_santander'] > 0) 
-        ? 'Con Tarjeta Santander' 
-        : (($conTarjeta && $rowDeps['tipoBanco'] == 'BANORTE' && $rowDeps['ctabanco'] > 0) 
-            ? 'Con Tarjeta Banorte' 
-            : 'Otro' // Se añade un valor por defecto para evitar errores
-        )
-    );
+    /*echo "<pre>";
+    var_dump($rowDeps);  // Imprime todo el array para ver qué se está recuperando
+    echo "</pre>";*/
+    // Lógica para determinar el tipo de pago
+   $rowDeps['vtipo_pago'] = ($porTransferencia && $rowDeps['pagoCheque'] == 'S') ? 'Por transferencia' : (($conTarjeta && $rowDeps['pagoCheque'] != 'S' && $rowDeps['ctaBan'] > 0) 
+        ? (($rowDeps['tipoBanco'] === 'SANTANDER') ? 'Con Tarjeta Santander' : 'Con Tarjeta Banorte') : 'Sin tarjeta');
     $data[] = $rowDeps;
 }
-
+/*echo "<pre>";
+	var_dump($data);
+echo "</pre>";*/
 //totales por tarjeta banorte, santander y transferencia
 $queryTotTipoPago = "WITH datosBase AS (
     SELECT 
@@ -185,9 +199,9 @@ $queryTotTipoPago = "WITH datosBase AS (
         END AS pagoCheque,
         -- Esta columna es solo para separar los montos de Banorte y Santander en los cálculos
         CASE 
-            WHEN e.ctabanco != ''  AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
+            WHEN e.ctabanco IS NOT NULL AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
             THEN 'BANORTE'
-            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') AND e.ctabanco_santander != ''
+            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') AND e.ctabanco_santander IS NOT NULL 
             THEN 'SANTANDER'
         END AS tipoBanco
     FROM tblnomsobres s
@@ -231,11 +245,16 @@ totalesGlobales AS (
         COALESCE(p.percepciones, 0) - COALESCE(d.deducciones, 0) AS total_efectivo,
         COALESCE((p.percepciones - d.deducciones) + c.canasta, 0) AS total_general
     FROM percepciones p
-    FULL OUTER JOIN canasta c ON p.pagoCheque = c.pagoCheque AND p.tipoBanco = c.tipoBanco
-    FULL OUTER JOIN deducciones d ON p.pagoCheque = d.pagoCheque AND p.tipoBanco = d.tipoBanco
+    INNER JOIN canasta c ON p.pagoCheque = c.pagoCheque AND p.tipoBanco = c.tipoBanco
+    INNER JOIN deducciones d ON p.pagoCheque = d.pagoCheque AND p.tipoBanco = d.tipoBanco
 )
 SELECT 
-    pagoCheque AS Tipo_de_Pago,  -- Se mantiene como 'N' o 'S'
+    -- Cambié aquí para incluir tanto el tipo de pago como el banco (por ejemplo 'N-BANORTE' o 'N-SANTANDER')
+    CASE 
+        WHEN pagoCheque = 'N' AND tipoBanco = 'BANORTE' THEN 'N-BANORTE'
+        WHEN pagoCheque = 'N' AND tipoBanco = 'SANTANDER' THEN 'N-SANTANDER'
+        WHEN pagoCheque = 'S' THEN 'S'
+    END AS Tipo_de_Pago,  
     total_percepciones AS Total_Percepciones,
     total_canasta AS Total_Canasta,
     total_deducciones AS Total_Deducciones,
@@ -252,6 +271,9 @@ $dataTipo = [];
 while ($rowTipo = sqlsrv_fetch_array($resultTipo, SQLSRV_FETCH_ASSOC)) {
     $dataTipo[] = $rowTipo;
 }
+/*echo "<pre>";
+	var_dump($dataTipo);
+echo "</pre>";*/
 //consulta de "Totales por unidad"
 if ($total_unidades == 5) {
     $tot_unidad = "WITH datosBase AS (
@@ -264,18 +286,18 @@ if ($total_unidades == 5) {
         s.conc,
         e.ctabanco,
         e.ctabanco_santander,
-        CASE 
+       CASE 
             WHEN (e.ctabanco IS NULL OR e.ctabanco = '') 
                  AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
             THEN 'S'  -- Si no tiene cuenta, se paga con transferencia
             ELSE 'N'  -- Si tiene cuenta bancaria, se agrupa como 'N'
         END AS pagoCheque,
-        -- Se usa solo para separar Banorte y Santander en los cálculos
-        CASE 
-            WHEN e.ctabanco IS NOT NULL AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
-            THEN 'BANORTE'
-             WHEN (e.ctabanco IS NULL OR e.ctabanco = '') AND (e.ctabanco_santander IS NOT NULL AND e.ctabanco_santander != '') 
-            THEN 'SANTANDER'
+         CASE 
+            WHEN (e.ctabanco IS NOT NULL AND e.ctabanco <> '') THEN 'BANORTE'
+            WHEN (e.ctabanco_santander IS NOT NULL AND e.ctabanco_santander <> '') THEN 'SANTANDER'
+            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') 
+                 AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') THEN 'TRANSFERENCIA'
+            ELSE 'OTRO'
         END AS tipoBanco
     FROM tblnomsobres s
     INNER JOIN tblnomemplea e ON s.ficha = e.ficha
@@ -314,7 +336,7 @@ deducciones AS (
         tipoBanco, 
         SUM(imp) AS deducciones
     FROM datosBase
-    WHERE conc > 500 AND conc != 555
+    WHERE conc >= 501 AND conc <> 555
     GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco
 )
 SELECT 
@@ -363,6 +385,9 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
 }
 //echo $tot_unidad;
 //die();
+/*echo "<pre>";
+	var_dump($curTot_Unidades);
+echo "</pre>";*/
 ?>
 <!DOCTYPE html>
 <html lang='es'>
@@ -441,41 +466,46 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
         </thead>
         <tbody>
             <?php
+                //global
             $pagosAgrupadosPorForma = [];
             foreach ($data as $row) {
                 $pagosAgrupadosPorForma[$row['vtipo_pago']][$row['unidadN']][] = $row;
             }
+			/*echo "<pre>";
+				var_dump($pagosAgrupadosPorForma);
+				exit;
+			echo "</pre>";*/
             // var_dump($total_unidades);  
             if ($total_unidades == 5) 
             {
                 $total_percepciones = $total_vales = $total_deducciones = $total_subtotal = $total_general = 0; // Totales generales
                 $mapFormaPago = [
-                    "Con Tarjeta Banorte" => "N",
-                	"Con Tarjeta Santander" => "N",
-                	"Por transferencia" => "S",
-                ];
+    					"Con Tarjeta Banorte" => "N-BANORTE",
+    					"Con Tarjeta Santander" => "N-SANTANDER",
+    					"Por transferencia" => "S",
+				];
+				/*echo "<pre>";
+					var_dump($mapFormaPago);
+					exit;
+				echo "</pre>";*/
+            	//dentro de la condición de totales por unidad
                 $pagosAgrupadosPorForma = [];
                 foreach ($data as $row) { 
-    				// Convertir 'vtipo_pago' a 'N' o 'S'
+    				// Convertir 'vtipo_pago' a 'N-BANORTE, N-SANTANDER' o 'S'
     				$formaPago = $mapFormaPago[$row['vtipo_pago']] ?? null;
-    
-    				// Identificar el banco correctamente
-    				if ($formaPago == "N") {
-        					if (!empty($row['ctabanco'])) {
-            						$tipoBanco = 'BANORTE';
-        					} elseif (!empty($row['ctabanco_santander'])) {
-            						$tipoBanco = 'SANTANDER';
-        					} else {
-            					$tipoBanco = 'DESCONOCIDO'; // En caso de error o datos incompletos
-        					}
-    					} elseif ($formaPago == "S") {
-        					$tipoBanco = 'Por transferencia';
-    					}
+                
+                	if (!empty($formaPago)) {
+                        $pagosAgrupadosPorForma[$formaPago][$row['unidadN']][] = $row;
+                    }
 				}
                 $totalesPorTipoPago = [];
                 foreach ($dataTipo as $total) {
                     $totalesPorTipoPago[$total['Tipo_de_Pago']] = $total;
                 }
+            	/*echo "<pre>";
+					var_dump($totalesPorTipoPago);
+					exit;
+				echo "</pre>";*/
                 // Filas base, cada que cambie de año editar aquí
                 $fondosArray = [
                     '11' => ['fondo' => '1125100000', 'nombre' => 'Recursos Fiscales ' . date("Y"), 'valores' => [0, 0, 0, 0, 0]],
@@ -500,20 +530,19 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
 
                 foreach ($pagosAgrupadosPorForma as $formaPago => $unidades)//tenía $vtipo_pago en vez de $formaPago 
                 { 
-                	// Crear un array para almacenar los tipos de banco
-    				$tiposBanco = [];
-    				// Verificar los tipos de banco en las unidades
-    				foreach ($unidades as $empleados) {
-        				// Verificar cada empleado dentro de la unidad
-        				foreach ($empleados as $empleado) {
-            				if (!empty($empleado['ctabanco'])) {
-                				$tiposBanco['BANORTE'] = true;
-            				} 
-            				if (!empty($empleado['ctabanco_santander'])) {
-                				$tiposBanco['SANTANDER'] = true;
-            				}
-        				}
-    				}
+           			if ($formaPago == "N-BANORTE") 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
+                    
+                    }else if ($formaPago == "N-SANTANDER") 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
+                    }
+                	else 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Por transferencia </td></tr>";
+                    }
+                	
                     foreach ($unidades as $unidad => $empleados) 
                     {
                         $unidad_percepciones = $unidad_vales = $unidad_deducciones = $unidad_subtotal = $unidad_total = 0;
@@ -552,23 +581,21 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                                 if (!isset($fondosTarjeta[$fondoPrefix])) {
                                     $fondosTarjeta[$fondoPrefix]['valores'] = [0, 0, 0, 0, 0];
                                 }
-                                if ($formaPago == 'N' && !empty($row['ctabanco'])) {
+                                if ($formaPago == 'N-BANORTE') {
                                 	
                                     	$fondosTarjeta[$fondoPrefix]['valores'][0] += $row['percepciones'];
                                     	$fondosTarjeta[$fondoPrefix]['valores'][1] += $row['canasta'];
                                     	$fondosTarjeta[$fondoPrefix]['valores'][2] += $row['deducciones'];
                                     	$fondosTarjeta[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
                                     	$fondosTarjeta[$fondoPrefix]['valores'][4] += $row['total'];
-                                    
-                                    
                                 }
                             	//fondos para tarjeta santander
 								if (!isset($fondosSantander[$fondoPrefix])) {
                                     $fondosSantander[$fondoPrefix]['valores'] = [0, 0, 0, 0, 0];
                                 }
-                                if ($formaPago == 'N' && !empty($row['ctabanco_santander'])) 
+                                if ($formaPago == 'N-SANTANDER') 
                                 {
-                                   	 	$fondosSantander[$fondoPrefix]['valores'][0] += $row['percepciones'];
+                                   	 	$fondosSantander[$fondoPrefix]['valores'][0] += $row['percepciones']; 
                                     	$fondosSantander[$fondoPrefix]['valores'][1] += $row['canasta'];
                                     	$fondosSantander[$fondoPrefix]['valores'][2] += $row['deducciones'];
                                     	$fondosSantander[$fondoPrefix]['valores'][3] += $row['total_efectivo'];
@@ -642,13 +669,12 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                         echo "<tr>";
                         echo "<td colspan='3' style='text-align: right;font-weight: bold;'>Totales ";
 
-                        if ($formaPago == "N") {
-        						if (isset($tiposBanco['BANORTE'])) {
+                        if ($formaPago == "N-BANORTE") {
+        						
             					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
-        					}
-        				if ($formaPago == "N" && isset($tiposBanco['SANTANDER'])) {
+                        }
+        				if ($formaPago == "N-SANTANDER") {
             					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
-        					}
     					} else {
         						echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Por transferencia </td></tr>";
     					}
@@ -660,7 +686,7 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                         echo "<td>" . number_format($totales['Total_General'], 2) . "</td>";
                         echo "</tr>";
 
-                        if($formaPago == "N" && $tiposBanco['BANORTE'] = true)
+                        if($formaPago == "N-BANORTE")
                         {
                             // Imprimir las filas de los fondos
                             foreach ($fondosTarjeta as $fondo) {
@@ -673,7 +699,7 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
                                     <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][4], 2) . "</td>
                                 </tr>";
                             }
-                        }if($formaPago == "N" && $tiposBanco['SANTANDER'] = true){
+                        }if($formaPago == "N-SANTANDER"){
                         		
                         	// Imprimir las filas de los fondos
                             foreach ($fondosSantander as $fondo) {
