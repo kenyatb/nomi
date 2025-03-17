@@ -8,21 +8,14 @@ function manejarError($mensaje)
 }
 
 $catorcena = isset($_POST['cat_rel']) ? ($_POST['cat_rel']) : 1;
-$concentrado = isset($_POST['optionConc']) ? intval($_POST['optionConc']) : 1;
+$concentrado = isset($_POST['optionDetalle']) ? intval($_POST['optionDetalle']) : 1;
 $pago = isset($_POST['optionPago']) ? $_POST['optionPago'] : [];
 $conTarjeta = in_array(3, $pago);
 $porTransferencia = in_array(4, $pago);
 $santander = in_array(5, $pago);
 $destino = isset($_POST['optionDestino']) ? intval($_POST['optionDestino']) : 6;
 $total_unidades = isset($_POST['optionTotUnidad']) ? intval($_POST['optionTotUnidad']) : 0;
-/*var_dump($catorcena);
-var_dump($concentrado);
-var_dump($pago);
-var_dump($conTarjeta);
-var_dump($porTransferencia);
-var_dump($santander);
-var_dump($destino);
-var_dump($total_unidades);*/
+
 $acumuladoDeFondos = [];
 $fondosTarjeta = [];
 $fondosTransferencia = [];
@@ -167,20 +160,13 @@ if ($resultDeps === false) {
 
 $vtipo_pago = '';
 $data = [];
-// Recorre los resultados
+
 while ($rowDeps = sqlsrv_fetch_array($resultDeps, SQLSRV_FETCH_ASSOC)) {
-    /*echo "<pre>";
-    var_dump($rowDeps);  // Imprime todo el array para ver qué se está recuperando
-    echo "</pre>";*/
-    // Lógica para determinar el tipo de pago
    $rowDeps['vtipo_pago'] = ($porTransferencia && $rowDeps['pagoCheque'] == 'S') ? 'Por transferencia' : (($conTarjeta && $rowDeps['pagoCheque'] != 'S' && $rowDeps['ctaBan'] > 0) 
         ? (($rowDeps['tipoBanco'] === 'SANTANDER') ? 'Con Tarjeta Santander' : 'Con Tarjeta Banorte') : 'Sin tarjeta');
     $data[] = $rowDeps;
 }
-/*echo "<pre>";
-	var_dump($data);
-echo "</pre>";*/
-//totales por tarjeta banorte, santander y transferencia
+
 $queryTotTipoPago = "WITH datosBase AS (
     SELECT 
         s.idenDepDep,
@@ -271,10 +257,7 @@ $dataTipo = [];
 while ($rowTipo = sqlsrv_fetch_array($resultTipo, SQLSRV_FETCH_ASSOC)) {
     $dataTipo[] = $rowTipo;
 }
-/*echo "<pre>";
-	var_dump($dataTipo);
-echo "</pre>";*/
-//consulta de "Totales por unidad"
+
 if ($total_unidades == 5) {
     $tot_unidad = "WITH datosBase AS (
     SELECT 
@@ -383,11 +366,7 @@ ORDER BY t1.pagoCheque, unidadN, deptoN, fondo ";
         sqlsrv_free_stmt($resultTotUnidad);
     }
 }
-//echo $tot_unidad;
-//die();
-/*echo "<pre>";
-	var_dump($curTot_Unidades);
-echo "</pre>";*/
+
 ?>
 <!DOCTYPE html>
 <html lang='es'>
@@ -532,15 +511,15 @@ echo "</pre>";*/
                 { 
            			if ($formaPago == "N-BANORTE") 
                     {
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
                     
                     }else if ($formaPago == "N-SANTANDER") 
                     {
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
                     }
-                	else 
+                	else if($formaPago == 'S') 
                     {
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Por transferencia </td></tr>";
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Por transferencia </td></tr>";
                     }
                 	
                     foreach ($unidades as $unidad => $empleados) 
@@ -646,12 +625,12 @@ echo "</pre>";*/
                         // Imprimir las filas de los fondos
                         foreach ($fondosArray as $fondo) {
                             echo "<tr>
-                                        <td colspan='3' style='font-weight: bold;'>{$fondo['fondo']} {$fondo['nombre']}</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][0], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][1], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][2], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][3], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][4], 2) . "</td>
+                                        <td colspan='3'>{$fondo['fondo']} {$fondo['nombre']}</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][0], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][1], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][2], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][3], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][4], 2) . "</td>
                                     </tr>";
                         }
                         // Resetear el array de fondos para la nueva unidad
@@ -667,16 +646,15 @@ echo "</pre>";*/
                     {
                         $totales = $totalesPorTipoPago[$formaPago];
                         echo "<tr>";
-                        echo "<td colspan='3' style='text-align: right;font-weight: bold;'>Totales ";
+                        echo "<td colspan='3' style='text-align: right;font-weight: bold; font-size: 20px;'>Totales ";
 
                         if ($formaPago == "N-BANORTE") {
-        						
-            					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
+            					echo " con Tarjeta Banorte: ";
                         }
-        				if ($formaPago == "N-SANTANDER") {
-            					echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
+        				else if ($formaPago == "N-SANTANDER") {
+            					echo " con Tarjeta Santander: ";
     					} else {
-        						echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Por transferencia </td></tr>";
+        						echo " por Transferencia: ";
     					}
                         echo "</td>";
                         echo "<td>" . number_format($totales['Total_Percepciones'], 2) . "</td>";
@@ -692,37 +670,36 @@ echo "</pre>";*/
                             foreach ($fondosTarjeta as $fondo) {
                                 echo "<tr>
                                     <td colspan='3' style='font-weight: bold;'>{$fondo['fondo']} {$fondo['nombre']}</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][0], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][1], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][2], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][3], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][4], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][0], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][1], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][2], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][3], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][4], 2) . "</td>
                                 </tr>";
                             }
-                        }if($formaPago == "N-SANTANDER"){
+                        }else if($formaPago == "N-SANTANDER"){
                         		
                         	// Imprimir las filas de los fondos
                             foreach ($fondosSantander as $fondo) {
                                 echo "<tr>
                                     <td colspan='3' style='font-weight: bold;'>{$fondo['fondo']} {$fondo['nombre']}</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][0], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][1], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][2], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][3], 2) . "</td>
-                                    <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][4], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][0], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][1], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][2], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][3], 2) . "</td>
+                                    <td style='text-align: right;'>" . number_format($fondo['valores'][4], 2) . "</td>
                                 </tr>";
                             }
-                        }
-                    else{
+                        }else{
                             // Imprimir las filas de los fondos
                             foreach ($fondosTransferencia as $fondo) {
                                     echo "<tr>
                                         <td colspan='3' style='font-weight: bold;'>{$fondo['fondo']} {$fondo['nombre']}</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][0], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][1], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][2], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][3], 2) . "</td>
-                                        <td style='text-align: right; font-weight: bold;'>" . number_format($fondo['valores'][4], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][0], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][1], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][2], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][3], 2) . "</td>
+                                        <td style='text-align: right;'>" . number_format($fondo['valores'][4], 2) . "</td>
                                     </tr>";
                             }
                         }
@@ -743,20 +720,20 @@ echo "</pre>";*/
                     $acumulados = isset($acumuladoDeFondos[$fondoPrefix]) ? $acumuladoDeFondos[$fondoPrefix]['valores'] : [0, 0, 0, 0, 0];
 
                     echo "<tr>
-                                <td colspan='3' style='font-weight: bold;'>{$fondo['fondo']} {$fondo['nombre']}</td>
-                                <td style='text-align: right; font-weight: bold;'>" . number_format($acumulados[0], 2) . "</td>
-                                <td style='text-align: right; font-weight: bold;'>" . number_format($acumulados[1], 2) . "</td>
-                                <td style='text-align: right; font-weight: bold;'>" . number_format($acumulados[2], 2) . "</td>
-                                <td style='text-align: right; font-weight: bold;'>" . number_format($acumulados[3], 2) . "</td>
-                                <td style='text-align: right; font-weight: bold;'>" . number_format($acumulados[4], 2) . "</td>
+                                <td colspan='3'>{$fondo['fondo']} {$fondo['nombre']}</td>
+                                <td style='text-align: right;'>" . number_format($acumulados[0], 2) . "</td>
+                                <td style='text-align: right;'>" . number_format($acumulados[1], 2) . "</td>
+                                <td style='text-align: right;'>" . number_format($acumulados[2], 2) . "</td>
+                                <td style='text-align: right;'>" . number_format($acumulados[3], 2) . "</td>
+                                <td style='text-align: right;'>" . number_format($acumulados[4], 2) . "</td>
                             </tr>";
                 }
             } else { // aquí es para el reporte de concentrados
                 $total_percepciones = $total_vales = $total_deducciones = $total_subtotal = $total_general = 0;
                 $mapFormaPago = [
-                    "Con Tarjeta Banorte" => "N",
-                    "Por transferencia" => "S",
-                	"Con Tarjeta Santander" => "N"
+                   	"Con Tarjeta Banorte" => "N-BANORTE",
+    				"Con Tarjeta Santander" => "N-SANTANDER",
+    				"Por transferencia" => "S",
                 ];
                 $pagosAgrupadosPorForma = [];
                 foreach ($data as $row) { 
@@ -773,14 +750,17 @@ echo "</pre>";*/
                 }
 
                 foreach ($pagosAgrupadosPorForma as $formaPago => $unidades) {
-                    if ($formaPago == "N") {
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
+                    if ($formaPago == "N-BANORTE") 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Con Tarjeta Banorte </td></tr>";
                     
-                    } else if ($formaPago == "N") {//agregar o quitar algo
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
+                    }else if ($formaPago == "N-SANTANDER") 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Con Tarjeta Santander </td></tr>";
                     }
-                	else {
-                        echo "<tr><td colspan='9' style='font-weight: bold;'>Forma de Pago: Por transferencia </td></tr>";
+                	else if($formaPago == 'S') 
+                    {
+                        echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: Por transferencia </td></tr>";
                     }
 
                     foreach ($unidades as $unidad => $empleados) {
@@ -808,14 +788,14 @@ echo "</pre>";*/
                     if (isset($totalesPorTipoPago[$formaPago])) {
                         $totales = $totalesPorTipoPago[$formaPago];
                         echo "<tr>";
-                        echo "<td colspan='3' style='text-align: right;font-weight: bold;'>Totales ";
+                        echo "<td colspan='3' style='text-align: right;font-weight: bold; font-size: 20px;'>Totales ";
 
-                        if ($formaPago == "N") {
-                            echo 'Con Tarjeta Banorte';
-                        }else if ($formaPago == "N") {
-                            echo 'Con Tarjeta Santander';
+                        if ($formaPago == "N-BANORTE") {
+                            echo 'Con Tarjeta Banorte: ';
+                        }else if ($formaPago == "N-SANTANDER") {
+                            echo 'Con Tarjeta Santander: ';
                         } else {
-                            echo 'Por Transferencia';
+                            echo 'Por Transferencia: ';
                         }
                         echo "</td>";
                         echo "<td>" . number_format($totales['Total_Percepciones'], 2) . "</td>";
