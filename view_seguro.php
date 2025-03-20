@@ -350,8 +350,8 @@ if ($varsesion == null || $varsesion = '')
                             </div>
                             <br>
                             <!-- Tabla para mostrar resultados -->
-                            <div class="container mt-3">
-                                <table id="tablaEmpleados" class="tabla table-striped table-hover">
+                            <div style="overflow: auto; white-space:nowrap;" class="container mt-3">
+                                <table id="tablaEmpleados" class="display nowrap">
                                     <thead class="table-dark">
                                         <tr>
                                             <th>Imprimir</th>
@@ -464,7 +464,8 @@ if ($varsesion == null || $varsesion = '')
             $(document).ready(function() {
                 // Inicializar DataTable
                 var table = $('#tablaEmpleados').DataTable({
-                    scrollX: true,     // Habilita el scroll horizontal
+                    scrollY: "400px",  // Altura máxima para activar scroll vertical
+                    scrollX: true,     // Activa
                     scrollCollapse: true,  // Colapsa el scroll si hay menos datos
                     paging: false,
                     searching: false,
@@ -492,6 +493,9 @@ if ($varsesion == null || $varsesion = '')
                         },
                         { "data": "ficha" },
                         { "data": "nombre" },
+                    ],
+                    columnDefs: [
+                        { targets: "_all", className: "text-center" } // Centra todas las columnas
                     ]
                 });
 
@@ -499,59 +503,56 @@ if ($varsesion == null || $varsesion = '')
         $('#consultaEmplea').on('submit', function(e) {
             e.preventDefault(); // Evitar recarga de la página
             console.log("Formulario enviado");
-            const tipoConsulta = $('input[name="tipoConsulta"]:checked').val();
-                // Preparar datos según el tipo de consulta
-                let requestData = {};
-                if(tipoConsulta === 'ficha') {
-                    requestData = {
-                        tipo: 'ficha',
-                        ficha1: $('#workerIDSelect1').val(),
-                        ficha2: $('#workerIDSelect2').val(),
-                        // eventuales: $('#eventuales').is(':checked') ? 1 : 0,
-                        // bajas: $('#bajas').is(':checked') ? 1 : 0
-                    };
-                } else {
-                    requestData = {
-                        tipo: 'depto',
-                        departamento: $('#deptosSelect').val()
-                    };
-                }
+            
+            let ficha1 = $("#workerIDSelect1").val();
+            let ficha2 = $("#workerIDSelect2").val();
+
+            if (ficha1 === "" || ficha2 === "") {
+                alert("Debe ingresar ambos valores de ficha.");
+                return;
+            }
             // Realizar consulta AJAX
             $.ajax({
-                url: 'MostrarEmp.php',
-                type: 'POST',
-                dataType: 'json',
-                data: requestData,
-                success: function(response) {
-                    console.log("Respuesta del servidor:", response);
-                    if (response.error) {
-                        alert(response.error);
-                    } else {
-                        table.clear().draw();
-                        if(response.data.length > 0) {
-                            table.rows.add(response.data).draw();
-                        } else {
-                            alert("No hay datos...");
-                        }
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error:', error);
-                    alert('Error al cargar los datos');
+            url: "MostrarEmp.php",
+            type: "POST",
+            dataType: "json",
+            data: {
+                tipo: "ficha",
+                ficha1: ficha1,
+                ficha2: ficha2
+            },
+            success: function (response) {
+                if (response.error) {
+                    alert("Error: " + response.error);
+                    return;
                 }
-            });
+
+                let tabla = $("#tablaEmpleados").DataTable();
+                tabla.clear(); // Limpiar datos previos
+
+                if (response.data.length > 0) {
+                    tabla.rows.add(response.data).draw(); // Agregar datos y dibujar la tabla
+                } else {
+                    alert("No se encontraron empleados en el rango especificado.");
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error en AJAX:", status, error);
+                alert("Ocurrió un error al procesar la solicitud.");
+            }
+        });
+    });
         });
 
         // Evento para resaltar filas seleccionadas para eliminación
         $('#tablaEmpleados tbody').on('change', 'input.print-checkbox', function() {
             var row = $(this).closest('tr'); // Obtener la fila correspondiente
             if ($(this).is(':checked')) {
-                row.css('background-color', 'green'); // Cambiar color de fondo si está marcada
+                row.css('background-color', '#D7E178'); // Cambiar color de fondo si está marcada
             } else {
                 row.css('background-color', ''); // Restaurar color original si no está marcada
             }
         });
-    });
 </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
