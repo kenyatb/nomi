@@ -538,10 +538,6 @@ ORDER BY
             
             $pagosAgrupadosPorForma = [];
 			$totalesPorTipoPago = [];
-            /*foreach ($data as $row) {
-                $pagosAgrupadosPorForma[$row['vtipo_pago']][$row['unidadN']][] = $row;
-            }*/
-			
 			// Mapeo de tipos de pago (usando tipoPagoId)
 			$mapFormaPago = [
     			3 => ["nombre" => "Con Tarjeta Banorte", "clave" => "N-BANORTE"],
@@ -561,9 +557,10 @@ ORDER BY
 			// Preparar totales por tipo de pago desde $dataTipo
 			foreach ($dataTipo as $total) 
             {
+            	$clave = isset($total['Tipo_de_Pago']) ? str_replace(' ', '', $total['Tipo_de_Pago']) : 'S';
     			$totalesPorTipoPago[$total['Tipo_de_Pago']] = $total;
 			}
-            // var_dump($total_unidades);  
+			
             if ($total_unidades == 5) 
             {
                 $total_percepciones = $total_vales = $total_deducciones = $total_subtotal = $total_general = 0; // Totales generales
@@ -572,10 +569,6 @@ ORDER BY
     					5 => ["nombre" => "Con Tarjeta Santander", "clave" => "N-SANTANDER"],
     					4 => ["nombre" => "Por transferencia", "clave" => "S"]
 				];
-				/*echo "<pre>";
-					var_dump($mapFormaPago);
-					exit;
-				echo "</pre>";*/
             	//dentro de la condición de totales por unidad
                 $pagosAgrupadosPorForma = [];
                 foreach ($data as $row) { 
@@ -842,53 +835,69 @@ ORDER BY
         				// Encabezado del tipo de pago
         				echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: $nombreFormaPago</td></tr>";
 
-                    foreach ($pagosAgrupadosPorForma[$formaPago] as $unidad => $empleados) {
-                        foreach ($empleados as $row) {
-                            // Acumular los totales de cada columna
-                            $total_percepciones += $row['percepciones'];
-                            $total_vales += $row['canasta'];
-                            $total_deducciones += $row['deducciones'];
-                            $total_subtotal += $row['total_efectivo'];
-                            $total_general += $row['total'];
-                            echo "<tr>
-                                    <td>{$row['unidadN']}</td>
-                                    <td>{$row['deptoN']}</td>
-                                    <td>{$row['Nombre_Depto']}</td>
-                                    <td>" . number_format($row['percepciones'], 2) . "</td>
-                                    <td>" . number_format($row['canasta'], 2) . "</td>
-                                    <td>" . number_format($row['deducciones'], 2) . "</td>
-                                    <td>" . number_format($row['total_efectivo'], 2) . "</td>
-                                    <td>" . number_format($row['total'], 2) . "</td>
-                                </tr>";
-                        }
-                    }
-
-                    // Insertar totales para el tipo de pago actual
-                    if (isset($totalesPorTipoPago[$formaPago])) {
-                        $totales = $totalesPorTipoPago[$formaPago];
-                        echo "<tr>";
-                        echo "<td colspan='3' style='text-align: right;font-weight: bold; font-size: 20px;'>Totales $nombreFormaPago: ";
-                    
-                        echo "</td>";
-                        echo "<td>" . number_format($totales['Total_Percepciones'], 2) . "</td>";
-                        echo "<td>" . number_format($totales['Total_Canasta'], 2) . "</td>";
-                        echo "<td>" . number_format($totales['Total_Deducciones'], 2) . "</td>";
-                        echo "<td>" . number_format($totales['Total_Efectivo'], 2) . "</td>";
-                        echo "<td>" . number_format($totales['Total_General'], 2) . "</td>";
-                        echo "</tr>";
-                    }
-                }
-             }
-                // Imprimir los totales finales después de todas las iteraciones
+                        // Detalle por unidad
+        foreach ($pagosAgrupadosPorForma[$formaPago] as $unidad => $empleados) {
+            foreach ($empleados as $row) {
+                // Acumular totales (usando los nombres de campo correctos)
+                $percepciones = $row['percepciones'] ?? $row['percepciones'];
+                $canasta = $row['canasta'] ?? $row['canasta'];
+                $deducciones = $row['deducciones'] ?? $row['deducciones'];
+                $total_efectivo = $row['total_efectivo'] ?? $row['total_efectivo'];
+                $total = $row['total'] ?? $row['total'];
+                
+                $total_percepciones += $percepciones;
+                $total_vales += $canasta;
+                $total_deducciones += $deducciones;
+                $total_subtotal += $total_efectivo;
+                $total_general += $total;
+                
                 echo "<tr>
-                    <td colspan='3' style='text-align: right;'><strong>SUMA TOTAL: </strong></td>
-                    <td>" . number_format($total_percepciones, 2) . "</td>
-                    <td>" . number_format($total_vales, 2) . "</td>
-                    <td>" . number_format($total_deducciones, 2) . "</td>
-                    <td>" . number_format($total_subtotal, 2) . "</td>
-                    <td>" . number_format($total_general, 2) . "</td>
-                    <td colspan='2'></td>
+                        <td>{$row['unidadN']}</td>
+                        <td>{$row['deptoN']}</td>
+                        <td>{$row['Nombre_Depto']}</td>
+                        <td class='text-right'>" . number_format($percepciones, 2) . "</td>
+                        <td class='text-right'>" . number_format($canasta, 2) . "</td>
+                        <td class='text-right'>" . number_format($deducciones, 2) . "</td>
+                        <td class='text-right'>" . number_format($total_efectivo, 2) . "</td>
+                        <td class='text-right'>" . number_format($total, 2) . "</td>
+                    </tr>";
+            }
+        }
+        
+        // Totales por tipo de pago
+        $claveTotal = $formaPago; // Usamos directamente la clave del mapeo
+      
+        if (isset($totalesPorTipoPago[$claveTotal])) {
+            $totales = $totalesPorTipoPago[$claveTotal];
+        	 
+            echo "<tr class='total-tipo-pago'>
+                    <td colspan='3' style='text-align: right; font-weight: bold; border-top: 2px solid #000;'>
+                        Totales $nombreFormaPago
+                    </td>
+                    <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($totales['Total_Percepciones'], 2) . "</td>
+                    <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($totales['Total_Canasta'], 2) . "</td>
+                    <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($totales['Total_Deducciones'], 2) . "</td>
+                    <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($totales['Total_Efectivo'], 2) . "</td>
+                    <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($totales['Total_General'], 2) . "</td>
                 </tr>";
+        }
+        
+        // Espaciado entre secciones
+        echo "<tr><td colspan='9' style='height: 20px;'></td></tr>";
+    }
+}
+
+// Total general
+echo "<tr class='total-general'>
+        <td colspan='3' style='text-align: right; font-weight: bold;'>
+            SUMA TOTAL
+        </td>
+        <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($total_percepciones, 2) . "</td>
+        <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($total_vales, 2) . "</td>
+        <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($total_deducciones, 2) . "</td>
+        <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($total_subtotal, 2) . "</td>
+        <td class='text-right' style='border-top: 2px solid #000;'>" . number_format($total_general, 2) . "</td>
+    </tr>";
             }
             ?>
         </tbody>
