@@ -320,84 +320,128 @@ while ($rowTipo = sqlsrv_fetch_array($resultTipo, SQLSRV_FETCH_ASSOC)) {
 
 if ($total_unidades == 5) {
     $tot_unidad = "WITH datosBase AS (
-        SELECT 
-            s.idenDepDep,
-            s.unidadN, 
-            s.deptoN,
-            s.imp,
-            s.cato,
-            s.conc,
-            e.ctabanco,
-            e.ctabanco_santander,
-            e.ficha,
-            CASE 
-                WHEN (e.ctabanco IS NULL OR e.ctabanco = '') 
-                    AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
-                THEN 'S' 
-                ELSE 'N'  
-            END AS pagoCheque,
-            CASE 
-                WHEN LTRIM(RTRIM(ISNULL(e.ctabanco_santander, ''))) <> '' THEN 'SANTANDER'
-                WHEN LTRIM(RTRIM(ISNULL(e.ctabanco, ''))) <> '' THEN 'BANORTE'
-                ELSE 'TRANSFERENCIA'
-            END AS tipoBanco,
-            CASE 
-                WHEN LTRIM(RTRIM(ISNULL(e.ctabanco_santander, ''))) <> '' THEN 5
-                WHEN LTRIM(RTRIM(ISNULL(e.ctabanco, ''))) <> '' THEN 3
-                ELSE 4
-            END AS tipoPagoId
-        FROM tblnomsobres s
-        INNER JOIN tblnomemplea e ON s.ficha = e.ficha
-        WHERE cato = ? " . $where_base . "
-    ),
-    percepciones AS (...),
-    canasta AS (...),
-    deducciones AS (...)
-    
     SELECT 
-        t4.descripcion AS Nombre_Depto,
-        COALESCE(t4.fondo, '') AS fondo,
-        COALESCE(t4.unidadN, '') AS unidadN,
-        COALESCE(t4.deptoN, '') AS deptoN,
-        COALESCE(SUM(t1.percepciones), 0) AS percepciones_fondo, 
-        COALESCE(SUM(t2.canasta), 0) AS canasta_fondo, 
-        COALESCE(SUM(t3.deducciones), 0) AS deducciones_fondo, 
-        COALESCE(SUM(t1.percepciones), 0) - COALESCE(SUM(t3.deducciones), 0) AS total_efectivo_fondo,      
-        (COALESCE(SUM(t1.percepciones), 0) - COALESCE(SUM(t3.deducciones), 0)) + COALESCE(SUM(t2.canasta), 0) AS total_fondo,
-        t1.pagoCheque,
-        t1.tipoBanco,
-        t1.tipoPagoId,
+        s.idenDepDep,
+        s.unidadN, 
+        s.deptoN,
+        s.imp,
+        s.cato,
+        s.conc,
+        e.ctabanco,
+        e.ctabanco_santander,
+        e.ficha,
         CASE 
-            WHEN t1.tipoPagoId = 3 THEN 'N-BANORTE'
-            WHEN t1.tipoPagoId = 5 THEN 'N-SANTANDER'
-            ELSE 'S'
-        END AS desc_tipo_pago
-    FROM percepciones AS t1
-    FULL OUTER JOIN canasta AS t2 
-        ON t1.idenDepDep = t2.idenDepDep 
-        AND t1.pagoCheque = t2.pagoCheque
-        AND t1.tipoBanco = t2.tipoBanco
-        AND t1.tipoPagoId = t2.tipoPagoId
-    FULL OUTER JOIN deducciones AS t3 
-        ON COALESCE(t1.idenDepDep, t2.idenDepDep) = t3.idenDepDep 
-        AND COALESCE(t1.pagoCheque, t2.pagoCheque) = t3.pagoCheque
-        AND COALESCE(t1.tipoBanco, t2.tipoBanco) = t3.tipoBanco
-        AND COALESCE(t1.tipoPagoId, t2.tipoPagoId) = t3.tipoPagoId
-    LEFT JOIN tblnomdepto AS t4
-        ON COALESCE(t1.idenDepDep, t2.idenDepDep, t3.idenDepDep) = t4.idendepto
-    GROUP BY 
-        t4.descripcion, 
-        t4.fondo, 
-        t4.unidadN, 
-        t4.deptoN, 
-        t1.pagoCheque,
-        t1.tipoBanco,
-        t1.tipoPagoId
-    ORDER BY 
-        t1.pagoCheque, 
-        t4.unidadN, 
-        t4.deptoN, 
-        t4.fondo";
+            WHEN (e.ctabanco IS NULL OR e.ctabanco = '') 
+                 AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '') 
+            THEN 'S'  -- Transferencia
+            ELSE 'N'   -- Tiene cuenta bancaria
+        END AS pagoCheque,
+        CASE 
+            WHEN LTRIM(RTRIM(ISNULL(e.ctabanco_santander, ''))) <> '' THEN 'SANTANDER'
+            WHEN LTRIM(RTRIM(ISNULL(e.ctabanco, ''))) <> '' THEN 'BANORTE'
+            ELSE 'TRANSFERENCIA'
+        END AS tipoBanco,
+        CASE 
+            WHEN LTRIM(RTRIM(ISNULL(e.ctabanco_santander, ''))) <> '' THEN 5
+            WHEN LTRIM(RTRIM(ISNULL(e.ctabanco, ''))) <> '' THEN 3
+            ELSE 4
+        END AS tipoPagoId
+    FROM tblnomsobres s
+    INNER JOIN tblnomemplea e ON s.ficha = e.ficha
+    WHERE cato = ? " . $where_base . "
+),
+
+percepciones AS (
+    SELECT 
+        idenDepDep, 
+        unidadN, 
+        deptoN, 
+        pagoCheque,
+        tipoBanco,
+        tipoPagoId,
+        SUM(imp) AS percepciones
+    FROM datosBase
+    WHERE conc < 500 AND conc NOT IN (2, 4, 20)
+    GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco, tipoPagoId
+),
+
+canasta AS (
+    SELECT 
+        idenDepDep,
+        unidadN, 
+        deptoN, 
+        pagoCheque,
+        tipoBanco,
+        tipoPagoId,
+        SUM(imp) AS canasta
+    FROM datosBase
+    WHERE conc IN (2, 4, 20)
+    GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco, tipoPagoId
+),
+
+deducciones AS (
+    SELECT 
+        idenDepDep,
+        unidadN, 
+        deptoN,  
+        pagoCheque,
+        tipoBanco,
+        tipoPagoId,
+        SUM(imp) AS deducciones
+    FROM datosBase
+    WHERE conc > 500 AND conc <> 555
+    GROUP BY idenDepDep, unidadN, deptoN, pagoCheque, tipoBanco, tipoPagoId
+)
+
+SELECT 
+    t4.descripcion AS Nombre_Depto,
+    COALESCE(t4.fondo, '') AS fondo, 
+    COALESCE(t4.unidadN, '') AS unidadN,
+    COALESCE(t4.deptoN, '') AS deptoN,
+    COALESCE(SUM(t1.percepciones), 0) AS percepciones_fondo, 
+    COALESCE(SUM(t2.canasta), 0) AS canasta_fondo, 
+    COALESCE(SUM(t3.deducciones), 0) AS deducciones_fondo, 
+    COALESCE(SUM(t1.percepciones), 0) - COALESCE(SUM(t3.deducciones), 0) AS total_efectivo_fondo,      
+    (COALESCE(SUM(t1.percepciones), 0) - COALESCE(SUM(t3.deducciones), 0)) + COALESCE(SUM(t2.canasta), 0) AS total_fondo,
+    t1.pagoCheque,
+    t1.tipoBanco,
+    t1.tipoPagoId,
+    CASE 
+        WHEN t1.pagoCheque = 'S' THEN 0
+        WHEN t1.pagoCheque = 'N' THEN 1
+        ELSE 0
+    END AS ctaBan,
+    CASE 
+        WHEN t1.tipoPagoId = 3 THEN 'BANORTE'
+        WHEN t1.tipoPagoId = 5 THEN 'SANTANDER'
+        ELSE 'TRANSFERENCIA'
+    END AS desc_tipo_pago
+FROM percepciones AS t1
+FULL OUTER JOIN canasta AS t2 
+    ON t1.idenDepDep = t2.idenDepDep 
+    AND t1.pagoCheque = t2.pagoCheque
+    AND t1.tipoBanco = t2.tipoBanco
+    AND t1.tipoPagoId = t2.tipoPagoId
+FULL OUTER JOIN deducciones AS t3 
+    ON COALESCE(t1.idenDepDep, t2.idenDepDep) = t3.idenDepDep 
+    AND COALESCE(t1.pagoCheque, t2.pagoCheque) = t3.pagoCheque
+    AND COALESCE(t1.tipoBanco, t2.tipoBanco) = t3.tipoBanco
+    AND COALESCE(t1.tipoPagoId, t2.tipoPagoId) = t3.tipoPagoId
+LEFT JOIN tblnomdepto AS t4
+    ON COALESCE(t1.idenDepDep, t2.idenDepDep, t3.idenDepDep) = t4.idendepto
+GROUP BY 
+    t4.descripcion, 
+    t4.fondo, 
+    t4.unidadN, 
+    t4.deptoN, 
+    t1.pagoCheque,
+    t1.tipoBanco,
+    t1.tipoPagoId
+ORDER BY 
+    t1.pagoCheque, 
+    t4.unidadN, 
+    t4.deptoN, 
+    t4.fondo";
     
     $paramUni = [$catorcena];
     $resultTotUnidad = sqlsrv_query($conn, $tot_unidad, $paramUni);
@@ -491,7 +535,6 @@ if ($total_unidades == 5) {
         </thead>
         <tbody>
             <?php
-            
             $pagosAgrupadosPorForma = [];
 			$totalesPorTipoPago = [];
 			// Mapeo de tipos de pago (usando tipoPagoId)
@@ -526,7 +569,7 @@ if ($total_unidades == 5) {
     					4 => ["nombre" => "Por transferencia", "clave" => "S"]
 				];
             	//dentro de la condición de totales por unidad
-                $pagosAgrupadosPorForma = [];
+                //$pagosAgrupadosPorForma = [];
                 foreach ($data as $row) { 
     				 $tipoId = $row['tipoPagoId'];
     				if (isset($mapFormaPago[$tipoId])) {
@@ -534,14 +577,12 @@ if ($total_unidades == 5) {
         				$pagosAgrupadosPorForma[$formaPago][$row['unidadN']][] = $row;
     				}
 				}
-                $totalesPorTipoPago = [];
-                foreach ($dataTipo as $total) {
-                    $totalesPorTipoPago[$total['Tipo_de_Pago']] = $total;
-                }
-            	/*echo "<pre>";
-					var_dump($totalesPorTipoPago);
-					exit;
-				echo "</pre>";*/
+                //$totalesPorTipoPago = [];
+    			foreach ($dataTipo as $total) {
+        			$clave = isset($total['ID_Tipo_Pago']) ? $mapFormaPago[$total['ID_Tipo_Pago']]['clave'] : 'S';
+        			$totalesPorTipoPago[$clave] = $total;
+    			}
+            	
                 // Filas base, cada que cambie de año editar aquí
                 $fondosArray = [
                     '11' => ['fondo' => '1125100000', 'nombre' => 'Recursos Fiscales ' . date("Y"), 'valores' => [0, 0, 0, 0, 0]],
@@ -566,14 +607,14 @@ if ($total_unidades == 5) {
 
                 foreach ($pagosAgrupadosPorForma as $formaPago => $unidades)//tenía $vtipo_pago en vez de $formaPago 
                 { 
-           			$formaPago = $infoFormaPago['clave'];
-    				$nombreFormaPago = $infoFormaPago['nombre'];
-    
+           		
     				if (isset($pagosAgrupadosPorForma[$formaPago])) {
         				// Encabezado del tipo de pago
-        				echo "<tr><td colspan='9' style='font-weight: bold; font-size: 20px;'>Forma de Pago: $nombreFormaPago</td></tr>";
+        				echo "<tr><td colspan='8' style='font-weight:bold; background-color:#ddd;'>";
+        				echo $mapFormaPago[$formaPago == 'N-BANORTE' ? 3 : ($formaPago == 'N-SANTANDER' ? 5 : 4)]['nombre'];
+        				echo "</td></tr>";
                 	
-                    foreach ($pagosAgrupadosPorForma[$formaPago] as $unidad => $empleados) 
+                    foreach ($unidades as $unidad => $empleados) 
                     {
                         $unidad_percepciones = $unidad_vales = $unidad_deducciones = $unidad_subtotal = $unidad_total = 0;
 
