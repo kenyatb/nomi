@@ -1,3 +1,4 @@
+<?php
 $pagosAgrupadosPorForma = [];
 			$totalesPorTipoPago = [];
 			// Mapeo de tipos de pago (usando tipoPagoId)
@@ -285,3 +286,4 @@ $pagosAgrupadosPorForma = [];
                 }
               }
             }
+?>
