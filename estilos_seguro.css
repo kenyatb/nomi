@@ -1,0 +1,222 @@
+    <style>
+        .table,thead,tr,th,td {
+            border: 1px solid black;
+            border-bottom: 1px solid black !important;
+        }
+
+        #workerIDSelect1, #workerIDSelect2 {
+            max-width: 150px; /* Define un ancho fijo */
+            font-size: 0.9rem; /* Reduce el tamaño de fuente */
+            padding: 5px 20px; /* Ajusta el padding */
+        }
+        #deptosSelect {
+            max-width: 250px; /* Define un ancho fijo */
+            font-size: 0.9rem; /* Reduce el tamaño de fuente */
+            padding: 5px 50px; /* Ajusta el padding */
+        }
+        .select-checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px; /* Ajustar el espaciado entre elementos */
+        }
+
+        .select-box {
+            max-width: 150px; /* Ajuste de ancho para los selects */
+            font-size: 0.9rem;
+            padding: 2px 5px;
+        }
+
+        .checkboxes, .radio-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid black;
+            padding: 10px;
+            background-color: #F0F0F0;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Espaciado entre checkbox y texto */
+        }
+
+        .form-check-label {
+            margin-bottom: 0; /* Asegurarse de que las etiquetas estén centradas verticalmente */
+            line-height: 1.6; /* Ajustar la altura de la línea para mejor alineación */
+        }
+        .bordered-container {
+            border: 1px; /* Borde negro */
+            padding: 10px; /* Espaciado interno */
+            display: inline-block; /* Ajustar el tamaño del contenedor al contenido */
+            background-color: #F0F0F0; /* Color de fondo similar al de la imagen */
+        }
+        .options-container {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-left: 20px;
+        }
+        .radio-container {
+            flex-direction: column; /* Para que los radios queden en columna */
+        }
+        .fecha-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px; /* Espacio entre el input y el texto */
+        }
+        .row.mb-3 {
+            display: flex;
+            align-items: center; /* Alinea verticalmente */
+            gap: 10px; /* Ajusta el espacio entre elementos */
+        }
+        .radio-bordered-container {
+            border: 1px; /* Borde negro */
+            padding: 10px; /* Espaciado interno */
+            background-color: #F0F0F0; /* Color de fondo similar al de la imagen */
+            margin-bottom: 15px;
+        }
+        /* Fila personalizada */
+        .custom-radio-row {
+            align-items: flex-start;
+            gap: 40px;
+        }
+        /* Botón aceptar */
+        .custom-accept-btn {
+            margin-top: 20px !important;
+            margin-left: 10px !important;
+        }
+        /* botón de seguros firmados */
+        .custom-firmados-btn {
+                margin-left: 10px; /* Ajusta según necesites */
+        }
+
+        .bordes-container {
+            border: 1px; /* Borde visible */
+            padding: 10px; /* Espaciado interno */
+            background-color: #F0F0F0; /* Color de fondo */
+            text-align: center; /* Alinear el contenido */
+            display: flex;
+            justify-content: center; /* Centrar contenido */
+            align-items: center; /* Asegurar alineación vertical */
+            margin: 0 15px; /* Espaciado entre divs laterales */
+        }
+
+        @media (max-width: 1024px) {
+        .custom-radio-row {
+            flex-direction: column;
+            gap: 20px;
+        }
+        .bordered-container, .bordes-container, .radio-bordered-container {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .fecha-container, .form-group {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .custom-accept-btn {
+            margin-top: 10px !important;
+            margin-left: 0 !important;
+        }
+
+        .tabla th {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Fondo blanco para la tabla */
+        #tablaEmpleados {
+            background-color: white;
+        }
+
+        /* Fondo blanco para las filas */
+        #tablaEmpleados tbody tr td {
+            background-color: white !important;
+            color: black; /* Asegura que el texto sea visible */
+        }
+
+        /* Fondo blanco para los encabezados */
+        #tablaEmpleados thead th {
+            background-color: white !important;
+            color: black; /* Asegura que el texto sea visible */
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap; /* Para responsividad */
+        }
+
+        .ficha-container, 
+        .departamento-container {
+                flex: 1; /* Ocuparán el mismo espacio */
+                min-width: 300px; /* Ancho mínimo antes de envolver */
+        }
+
+    .bordered-container {
+        padding: 10px;
+        border: 1px solid #ccc;
+        background-color: white;
+        width: 100%;
+    }
+    .departamento-container .bordered-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    /* Estilos para secciones */
+    .active-section {
+        opacity: 1;
+        pointer-events: all;
+        transition: opacity 0.3s ease;
+    }
+
+    .ficha-container:not(.active-section),
+    .departamento-container:not(.active-section) {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .active-section {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .filtro-container {
+        flex-direction: column; /* Apilar elementos */
+        gap: 10px; /* Menos espacio */
+    }
+
+    .departamento-container,
+    .tipo-container {
+        width: 100%; /* Que ocupen todo el ancho */
+    }
+}
+
+    .contenedor-tabla {
+        display: flex;
+        align-items: flex-start;  /* Alinea en la parte superior */
+        gap: 20px;               /* Espacio entre tabla y botones */
+        position: relative;
+    }
+
+.tabla-container {
+    flex-grow: 1;            /* Ocupa el espacio restante */
+    overflow: auto;
+}
+
+.contenedor-botones {
+    display: flex;
+    flex-direction: column;  /* Botones en columna */
+    gap: 10px;               /* Espacio entre botones */
+    position: sticky;
+    top: 0;                  /* Se mantiene arriba al hacer scroll */
+    background: white;       /* Fondo para solapamientos */
+    padding: 10px;
+    z-index: 1;
+}
+</style>
