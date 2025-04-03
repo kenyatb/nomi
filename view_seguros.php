@@ -73,9 +73,12 @@ if ($varsesion == null || $varsesion = '')
         box-sizing: border-box;
     }
 
+    /* Estilos generales */
     .bordered-container {
-        display: inline-block;
-    }
+            border: 1px solid black;
+            padding: 10px;
+            background-color: #F0F0F0;
+        }
 
     .radio-bordered-container {
         margin-bottom: 15px;
@@ -98,8 +101,10 @@ if ($varsesion == null || $varsesion = '')
     }
 
     .radio-container {
-        flex-direction: column;
-    }
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
 
     .fecha-container {
         display: inline-flex;
@@ -151,7 +156,7 @@ if ($varsesion == null || $varsesion = '')
         top: 0;
         background: white;
         padding: 10px;
-        z-index: 1;
+        z-index: 1000; /* Asegura que esté sobre otros elementos */
     }
 
     /* Ajustes para filtros */
@@ -187,6 +192,27 @@ if ($varsesion == null || $varsesion = '')
         pointer-events: none;
     }
 
+    /* Contenedor principal que alinea Filtro de Fichas y Ficha/Depto */
+    .contenedor-principal {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .filtro-fichas, .ficha-depto {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        /* Contenedor de los botones */
+        .contenedor-botones {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+        }
     /* Ajustes responsive */
     @media (max-width: 1024px) {
         .custom-radio-row {
@@ -241,6 +267,17 @@ if ($varsesion == null || $varsesion = '')
         }
     }
 
+     /* Ajustes responsivos */
+     @media (max-width: 768px) {
+            .contenedor-principal {
+                flex-direction: column;
+            }
+
+            .contenedor-botones {
+                position: static;
+            }
+        }
+
     /* Ajustes para pantallas grandes */
     @media (min-width: 1025px) {
         .filtro-container {
@@ -276,34 +313,36 @@ if ($varsesion == null || $varsesion = '')
                                 <form id="consultaEmplea" method="post">
                                     <div class="filter-container">
                                         <!-- Sección de Ficha/Dpto y Pantalla/Impresora -->
-                                        <div class="ficha-container">
+                                        
                                             <h4>Por ficha:</h4>
-                                            <div class="bordered-container">
-                                                <div class="select-checkbox-container">
-                                                    <div>
-                                                        <label for="workerIDSelect1"> De la </label>
-                                                        <select class="form-control form-control-sm select-box" name="workerIDSelect1" id="workerIDSelect1">
-                                                            <option value="" selected disabled>Seleccione una ficha</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label for="workerIDSelect2"> a la</label> 
-                                                        <select class="form-control form-control-sm select-box" name="workerIDSelect2" id="workerIDSelect2">
-                                                            <option value="" selected disabled>Seleccione una ficha</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="options-container">
-                                                        <div class="checkboxes">
-                                                            <div class="form-check">
-                                                                <input type="checkbox" class="form-check-input" name="eventuales" id="eventuales">
-                                                                <label for="eventuales" class="form-check-label">Solo eventuales</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input type="checkbox" class="form-check-input" name="bajas" id="bajas">
-                                                                <label for="bajas" class="form-check-label">Incluir bajas</label>
+                                            <div class="contenedor-principal">
+                                                    <div class="filtro-fichas bordered-container">
+                                                        <div>
+                                                            <label for="workerIDSelect1"> De la </label>
+                                                            <select class="form-control form-control-sm select-box" name="workerIDSelect1" id="workerIDSelect1">
+                                                                <option value="" selected disabled>Seleccione una ficha</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label for="workerIDSelect2"> a la</label> 
+                                                            <select class="form-control form-control-sm select-box" name="workerIDSelect2" id="workerIDSelect2">
+                                                                <option value="" selected disabled>Seleccione una ficha</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="options-container">
+                                                            <div class="checkboxes">
+                                                                <div class="form-check">
+                                                                    <input type="checkbox" class="form-check-input" name="eventuales" id="eventuales">
+                                                                    <label for="eventuales" class="form-check-label">Solo eventuales</label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <input type="checkbox" class="form-check-input" name="bajas" id="bajas">
+                                                                    <label for="bajas" class="form-check-label">Incluir bajas</label>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div class="radio-container">
+                                                    </div>
+                                                        <div class="ficha-depto bordered-container">
                                                             <div class="form-check">
                                                                 <input type="radio" class="form-check-input" name="tipoConsulta" id="ficha" value="ficha" checked>
                                                                 <label for="ficha" class="form-check-label">Ficha</label>
@@ -313,15 +352,10 @@ if ($varsesion == null || $varsesion = '')
                                                                 <label for="depto" class="form-check-label">Depto.</label>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="filtro-container">
-                                            <!-- Sección de Departamento -->
-                                            <div class="departamento-container">
+                                        
+                                                <!-- Sección de Departamento -->
                                                 <h4>Por departamento:</h4>
-                                                <div class="bordered-container">
+                                                <div class="departamento-container bordered-container">
                                                     <div class="form-group">
                                                         <label for="deptosSelect">Departamento: </label>
                                                         <select class="form-control form-control-sm w-auto" name="deptosSelect" id="deptosSelect" required>
@@ -332,8 +366,8 @@ if ($varsesion == null || $varsesion = '')
                                             </div>
 
                                             <!-- Sección tipo -->
-                                            <div class="tipo-container">
-                                                <div class="bordered-container">
+                                            <div class="bordered-container">
+                                                <div class="radio-container">
                                                     <div class="form-check">
                                                         <input type="radio" class="form-check-input" name="tipo" id="confianza" value="confianza" checked>
                                                         <label for="confianza" class="form-check-label">Confianza</label>
@@ -352,54 +386,50 @@ if ($varsesion == null || $varsesion = '')
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-
-
-                                    <div class="container">
-                                        <div class="row mb-3 custom-radio-row">
-                                            <!-- Fechas -->
-                                            <div class="col-sm-3">
+                                                <!-- Sección de fecha y botones -->
                                                 <div class="bordered-container">
                                                     <div class="fecha-container"> 
                                                         <label for="fechaPoliza" class="me-2">Fecha Póliza:</label>
                                                         <input type="date" name="fechaPoliza" id="fechaPoliza" class="form-control" style="width: 150px;"> 
                                                             Solo para eventuales
                                                     </div>
+                                                    <br>
                                                     <div class="form-group d-flex align-items-center">
                                                         <label for="fechaIngreso" class="me-2">Fecha Ingreso:</label>
                                                         <input type="date" name="fechaIngreso" id="fechaIngreso" class="form-control" style="width: 150px;">
                                                     </div>
+                                                    <br>
                                                     <div class="form-check">
                                                         <input type="checkbox" class="form-check-input" name="beneficiarios" id="beneficiarios">
                                                         <label for="beneficiarios" class="form-check-label">Con Beneficiarios</label>
                                                     </div>
+                                                    <br>
                                                     <div class="form-check">
                                                         <input type="checkbox" class="form-check-input" name="designacion" id="designacion">
                                                         <label for="designacion" class="form-check-label">Designación Irrevocable</label>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <!-- Botón Aceptar -->
-                                            <button type="submit" id="" class="btn custom-accept-btn align-self-start">
-                                                <img src="../dist/img/aceptar.png" height="20px" class="me-2">
-                                                Aceptar
-                                            </button>
-                                    <!-- Columna derecha (Radios + Botón) -->
-                                    <div class="col-sm-2">
-                                        <div class="d-flex flex-column align-items-start">
-                                            <!-- Contenedor de radios -->
-                                            <div class="radio-bordered-container" style="width: fit-content; min-width: 130px">
-                                                <div class="form-check">
-                                                    <input type="radio" class="form-check-input" name="destino" id="pantalla" value="pantalla" checked>
-                                                    <label for="pantalla" class="form-check-label">Pantalla</label>
+                                                <!-- Botón Aceptar -->
+                                                    <button type="submit" id="" class="btn custom-accept-btn align-self-start">
+                                                        <img src="../dist/img/aceptar.png" height="20px" class="me-2">
+                                                        Aceptar
+                                                    </button>
+                                                <!-- Columna derecha (Radios + Botón) -->
+                                                <div class="col-sm-2">
+                                                    <div class="d-flex flex-column align-items-start">
+                                                        <!-- Contenedor de radios -->
+                                                        <div class="radio-bordered-container" style="width: fit-content; min-width: 130px">
+                                                            <div class="form-check">
+                                                                <input type="radio" class="form-check-input" name="destino" id="pantalla" value="pantalla" checked>
+                                                                <label for="pantalla" class="form-check-label">Pantalla</label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input type="radio" class="form-check-input" name="destino" id="impresora" value="impresora">
+                                                                <label for="impresora" class="form-check-label">Impresora</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="form-check">
-                                                    <input type="radio" class="form-check-input" name="destino" id="impresora" value="impresora">
-                                                    <label for="impresora" class="form-check-label">Impresora</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             <br>
