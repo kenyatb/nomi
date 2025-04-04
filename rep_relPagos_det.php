@@ -8,10 +8,29 @@ function manejarError($mensaje)
 }
 
 $catorcena = isset($_POST['cat_rel']) ? ($_POST['cat_rel']) : 1;
-$detallado = isset($_POST['optionDet']) ? intval($_POST['optionDet']) : 0;
+$detallado = isset($_POST['optionDetalle']) ? intval($_POST['optionDetalle']) : 0;
 $destino = isset($_POST['optionDestino']) ? intval($_POST['optionDestino']) : 6;
+$pago = isset($_POST['optionPago']) ? $_POST['optionPago'] : [];
+$conTarjeta = in_array(3, $pago);
+$porTransferencia = in_array(4, $pago);
+$santander = in_array(5, $pago);
 $total_unidades = isset($_POST['optionTotUnidad']) ? intval($_POST['optionTotUnidad']) : 0;
-
+/*var_dump($catorcena);
+var_dump($detallado);
+var_dump($pago);
+var_dump($conTarjeta);
+var_dump($porTransferencia);
+var_dump($santander);
+exit;*/
+//echo "<pre>";
+//print_r($catorcena);
+//print_r($detallado);
+//print_r($pago);
+//print_r($conTarjeta);
+//print_r($porTransferencia);
+//print_r($santander);
+//echo "</pre>";
+//exit;
 if ($catorcena <= 0) 
 {
     manejarError('No hay catorcena 0, Por favor, selecciona una catorcena válida...');
@@ -37,6 +56,37 @@ if (sqlsrv_has_rows($resultF)) {
     }
 }    
 sqlsrv_free_stmt($resultF);
+
+$condiciones_pago = [];
+$filtrosPago = [];
+
+//filtros para la primer consulta
+if(in_array(3, $pago)) { // Banorte
+    $condiciones_pago[] = "(tblnomemplea.pagoCheque = 'N' AND tblnomemplea.ctabanco <> '')";
+}
+
+if(in_array(5, $pago)) { // Santander
+    $condiciones_pago[] = "(tblnomemplea.pagoCheque = 'N' AND tblnomemplea.ctabanco = '' AND tblnomemplea.ctabanco_santander <> '')";
+}
+
+if(in_array(4, $pago)) { // Transferencia
+    $condiciones_pago[] = "(tblnomemplea.pagoCheque = 'S' AND tblnomemplea.ctabanco = '' AND tblnomemplea.ctabanco_santander = '')";
+}
+
+//filtros para la consulta de totales por unidad
+if(in_array(3, $pago)) { // Banorte
+    $filtrosPago[] = "(e.ctabanco <> '' AND e.ctabanco IS NOT NULL)";
+}
+
+if(in_array(5, $pago)) { // Santander
+    $filtrosPago[] = "(e.ctabanco_santander <> '' AND e.ctabanco_santander IS NOT NULL)";
+}
+
+if(in_array(4, $pago)) { // Transferencia
+    $filtrosPago[] = "(e.ctabanco IS NULL OR e.ctabanco = '') AND (e.ctabanco_santander IS NULL OR e.ctabanco_santander = '')";
+}
+
+$where_adicional = !empty($filtrosPago) ? " AND (" . implode(" OR ", $filtrosPago) . ")" : "";
 
     $queryEmp = "WITH percepciones AS (
         SELECT 
@@ -95,52 +145,81 @@ FULL OUTER JOIN deducciones AS t3
 LEFT JOIN tblnomdepto AS t4
     ON COALESCE(t1.idenDepDep, t2.idenDepDep, t3.idenDepDep) = t4.idendepto
 LEFT JOIN tblnomemplea
-    ON COALESCE(t1.ficha, t2.ficha, t3.ficha) = tblnomemplea.ficha
-ORDER BY unidadN, deptoN, ficha";
-    $paramsEmp = [$catorcena, $catorcena, $catorcena];
-    $resultEmp = sqlsrv_query($conn, $queryEmp, $paramsEmp);
+    ON COALESCE(t1.ficha, t2.ficha, t3.ficha) = tblnomemplea.ficha ";
+// Agregar condiciones si hay selecciones
+if(!empty($condiciones_pago)) {
+    $queryEmp .= " WHERE " . implode(" OR ", $condiciones_pago);
+}
+
+$queryEmp .= " ORDER BY unidadN, deptoN, ficha";
+//echo $queryEmp;
+//exit;
+$paramsEmp = [$catorcena, $catorcena, $catorcena];
+$resultEmp = sqlsrv_query($conn, $queryEmp, $paramsEmp);
     if ($resultEmp === false) {
         manejarError("Error en la consulta de empleados: " . print_r(sqlsrv_errors(), true));
-    }else{
-        $Empleados = [];
-        while($filasEmp = sqlsrv_fetch_array($resultEmp, SQLSRV_FETCH_ASSOC))
-        {
-            $Empleados[] = $filasEmp;
-        }
+    }else {
+    	$Empleados = [];
+    	while ($filasEmp = sqlsrv_fetch_array($resultEmp, SQLSRV_FETCH_ASSOC)) {
+        	$Empleados[] = $filasEmp;
+    	}
     }
     sqlsrv_free_stmt($resultEmp);
 
 if ($total_unidades == 5) 
 {
     $tot_unidad = "WITH percepciones AS (
-        SELECT unidadN, SUM(imp) AS percepciones
-        FROM tblNomSobres
-        WHERE cato = ? AND conc < 500 AND conc NOT IN (2, 4, 20)
-        GROUP BY unidadN
-    ),
-    canasta AS (
-        SELECT unidadN, SUM(imp) AS canasta
-        FROM tblNomSobres
-        WHERE cato = ? AND conc IN (2, 4, 20)
-        GROUP BY unidadN
-    ),
-    deducciones AS (
-        SELECT unidadN, SUM(imp) AS deducciones
-        FROM tblNomSobres
-        WHERE cato = ? AND conc > 500 and conc != 555 
-        GROUP BY unidadN
-    )
     SELECT 
-        COALESCE(t1.unidadN, t2.unidadN, t3.unidadN) AS unidad,
-        COALESCE(t1.percepciones, 0) AS percepciones, 
-        COALESCE(t2.canasta, 0) AS canasta, 
-        COALESCE(t3.deducciones, 0) AS deducciones, 
-        (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) AS total_efectivo,  
-        (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) + COALESCE(t2.canasta, 0) AS total
-    FROM percepciones AS t1
-        FULL OUTER JOIN canasta AS t2 ON t1.unidadN = t2.unidadN
-        FULL OUTER JOIN deducciones AS t3 ON COALESCE(t1.unidadN, t2.unidadN) = t3.unidadN
-    ORDER BY unidad";
+        s.unidadN, 
+        s.deptoN,
+        SUM(s.imp) AS percepciones
+    FROM tblNomSobres s
+    INNER JOIN tblnomemplea e ON s.ficha = e.ficha  
+    WHERE s.cato = ? 
+    AND s.conc < 500 
+    AND s.conc NOT IN (2, 4, 20)
+    $where_adicional
+    GROUP BY s.unidadN, s.deptoN
+),
+canasta AS (
+    SELECT 
+        s.unidadN, 
+        s.deptoN,
+        SUM(s.imp) AS canasta
+    FROM tblNomSobres s
+    INNER JOIN tblnomemplea e ON s.ficha = e.ficha  
+    WHERE s.cato = ? 
+    AND s.conc IN (2, 4, 20)
+    $where_adicional
+    GROUP BY s.unidadN, s.deptoN
+),
+deducciones AS (
+    SELECT 
+        s.unidadN, 
+        s.deptoN,
+        SUM(s.imp) AS deducciones
+    FROM tblNomSobres s
+    INNER JOIN tblnomemplea e ON s.ficha = e.ficha  
+    WHERE s.cato = ? AND s.conc > 500 AND s.conc != 555
+    $where_adicional
+    GROUP BY s.unidadN, s.deptoN
+)
+SELECT 
+    COALESCE(t1.unidadN, t2.unidadN, t3.unidadN) AS unidad,
+    COALESCE(t1.deptoN, t2.deptoN, t3.deptoN) AS depto,
+    COALESCE(t1.percepciones, 0) AS percepciones,
+    COALESCE(t2.canasta, 0) AS canasta,
+    COALESCE(t3.deducciones, 0) AS deducciones,
+    (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) AS total_efectivo,
+    (COALESCE(t1.percepciones, 0) - COALESCE(t3.deducciones, 0)) + COALESCE(t2.canasta, 0) AS total
+FROM percepciones AS t1
+FULL OUTER JOIN canasta AS t2 
+    ON t1.unidadN = t2.unidadN 
+    AND t1.deptoN = t2.deptoN  
+FULL OUTER JOIN deducciones AS t3 
+    ON COALESCE(t1.unidadN, t2.unidadN) = t3.unidadN 
+    AND COALESCE(t1.deptoN, t2.deptoN) = t3.deptoN 
+ORDER BY unidad, depto";
     $paramUni = [$catorcena, $catorcena, $catorcena];
     $resultTotUnidad = sqlsrv_query($conn, $tot_unidad, $paramUni);
     if ($resultTotUnidad === false) {
@@ -234,30 +313,35 @@ if ($total_unidades == 5)
         </tr>
     </thead>
     <tbody>
-        <?php 
+        <?php
+            $totalesPorUnidad = [];
+			foreach ($curTot_Unidades as $total) {
+    			$clave = $total['unidad'] . '-' . $total['depto'];
+    			$totalesPorUnidad[$clave] = $total;
+			}
             $unidad_actual = null;
             $depto_actual = null;
-            $indice_unidad_totales = 0; // Para iterar sobre $curTot_Unidades
+            
             foreach ($Empleados as $key => $filas): 
             // Cuando cambia la unidad
-            if ($unidad_actual !== null && $unidad_actual !== $filas["unidadN"]) {
+            if ($unidad_actual !== null && ($unidad_actual !== $filas["unidadN"] || $depto_actual !== $filas["deptoN"])) {
                 // Agregar los totales de la unidad actual
                 if ($total_unidades == 5) {
-                	
-                    $totales = $curTot_Unidades[$indice_unidad_totales] ?? null;
-                    if ($totales) {
-                    echo "<tr>
-                        <td colspan='3' style='font-weight: bold; text-align: right;'>Suma Unidad</td>
-                        <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["percepciones"], 2) . "</td>
-                        <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["canasta"], 2) . "</td>
-                        <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["deducciones"], 2) . "</td>
-                        <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["total_efectivo"], 2) . "</td>
-                        <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["total"], 2) . "</td>
-                    </tr>";
-                }
-                $indice_unidad_totales++; // Avanza al siguiente total de unidad
+            			$claveTotal = $unidad_actual . '-' . $depto_actual;
+            			if (isset($totalesPorUnidad[$claveTotal])) {
+                			$totales = $totalesPorUnidad[$claveTotal];
+                echo "<tr>
+                    <td colspan='3' style='font-weight: bold; text-align: right;'>Suma Unidad</td>
+                    <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["percepciones"], 2) . "</td>
+                    <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["canasta"], 2) . "</td>
+                    <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["deducciones"], 2) . "</td>
+                    <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["total_efectivo"], 2) . "</td>
+                    <td style='text-align: right; border-top: 2px solid black;'>" . number_format($totales["total"], 2) . "</td>
+                </tr>";
             }
-            }
+        }
+    }
+            
              // Cuando cambia la unidad
              if ($unidad_actual !== $filas["unidadN"]) {
                 $unidad_actual = $filas["unidadN"];
@@ -291,6 +375,15 @@ if ($total_unidades == 5)
         <td>" . number_format($filas["total"], 2) . "</td>
     </tr>";
         endforeach;
+
+		// Mostrar total de la última unidad
+if ($total_unidades == 5 && $unidad_actual !== null) {
+    $claveTotal = $unidad_actual . '-' . $depto_actual;
+    if (isset($totalesPorUnidad[$claveTotal])) {
+        $totales = $totalesPorUnidad[$claveTotal];
+        echo "<tr>...</tr>"; // Mismo formato de fila de totales
+    }
+}
         //si no se selecciona la opción de total de unidades
         $totalPercepciones = $totalCanasta = $totalDeducciones = $totalEfectivo =  $totalGeneral = 0;  // Total
         // Procesar resultados de la consulta
