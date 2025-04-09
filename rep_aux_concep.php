@@ -1,6 +1,12 @@
 <?php
 // require '../../../vendor/autoload.php';
-ini_set('memory_limit', '1024M');
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error_log_php.log');
+//error_log("Probando escritura en el log desde PHP");
+error_reporting(E_ALL);
+
 require '../../vendor/vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
