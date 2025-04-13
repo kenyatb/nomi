@@ -42,7 +42,7 @@ if ($varsesion == null || $varsesion = '')
     .radio-container {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
+        align-items: left;
         gap: 15px;
     }
 
@@ -110,12 +110,6 @@ if ($varsesion == null || $varsesion = '')
         display: inline-flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .row.mb-3 {
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
 
     /* Fila personalizada */
@@ -200,18 +194,17 @@ if ($varsesion == null || $varsesion = '')
             align-items: flex-start;
         }
 
-        .filtro-fichas, .ficha-depto {
-            flex: 1;
-            min-width: 300px;
+        .filtro-fichas {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap; /* Para mantener responsividad */
         }
 
-        /* Contenedor de los botones */
-        .contenedor-botones {
+        .filtro-fichas > div {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 10px;
-            position: relative;
-            z-index: 1;
         }
     /* Ajustes responsive */
     @media (max-width: 1024px) {
@@ -223,7 +216,7 @@ if ($varsesion == null || $varsesion = '')
         .bordered-container,
         .bordes-container,
         .radio-bordered-container {
-            width: 100%;
+            width: auto;
             margin: 10px 0;
         }
 
@@ -255,12 +248,6 @@ if ($varsesion == null || $varsesion = '')
             color: black;
         }
 
-        /* Filtros en columna */
-        .filtro-container {
-            flex-direction: column;
-            gap: 10px;
-        }
-
         .departamento-container,
         .tipo-container {
             width: 100%;
@@ -268,7 +255,7 @@ if ($varsesion == null || $varsesion = '')
     }
 
      /* Ajustes responsivos */
-     @media (max-width: 768px) {
+        @media (max-width: 768px) {
             .contenedor-principal {
                 flex-direction: column;
             }
@@ -277,20 +264,11 @@ if ($varsesion == null || $varsesion = '')
                 position: static;
             }
         }
-
-    /* Ajustes para pantallas grandes */
-    @media (min-width: 1025px) {
-        .filtro-container {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
+        h4 {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px; /* Espaciado entre el título y el div */
         }
-
-        .departamento-container,
-        .tipo-container {
-            width: auto;
-        }
-    }
 </style>
 </head>
 <body class="hold-transition skin-blue sidebar-mini">
@@ -310,52 +288,50 @@ if ($varsesion == null || $varsesion = '')
                                 <img src="../dist/img/logogeneral.png" style="width: 200px; height: auto;">
                             </div>
                             <div class="row" style="padding:20px; min-height: 300px;">
-                                <form id="consultaEmplea" method="post">
+                                <form id="consultaEmplea" method="post" action = "poliza.php" target="_blank">
                                     <div class="filter-container">
-                                        <!-- Sección de Ficha/Dpto y Pantalla/Impresora -->
-                                        
+                                        <!-- Sección de Ficha/Dpto y Pantalla/Impresora -->                                    
                                             <h4>Por ficha:</h4>
                                             <div class="contenedor-principal">
-                                                    <div class="filtro-fichas bordered-container">
-                                                        <div>
-                                                            <label for="workerIDSelect1"> De la </label>
-                                                            <select class="form-control form-control-sm select-box" name="workerIDSelect1" id="workerIDSelect1">
-                                                                <option value="" selected disabled>Seleccione una ficha</option>
-                                                            </select>
+                                                <div class="filtro-fichas bordered-container">
+                                                    <div>
+                                                        <label for="workerIDSelect1">De la</label>
+                                                        <select class="form-control form-control-sm select-box" name="workerIDSelect1" id="workerIDSelect1">
+                                                            <option value="" selected disabled>Seleccione una ficha</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label for="workerIDSelect2">a la</label>
+                                                        <select class="form-control form-control-sm select-box" name="workerIDSelect2" id="workerIDSelect2">
+                                                            <option value="" selected disabled>Seleccione una ficha</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="options-container">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="eventuales" id="eventuales">
+                                                            <label for="eventuales" class="form-check-label">Solo eventuales</label>
                                                         </div>
-                                                        <div>
-                                                            <label for="workerIDSelect2"> a la</label> 
-                                                            <select class="form-control form-control-sm select-box" name="workerIDSelect2" id="workerIDSelect2">
-                                                                <option value="" selected disabled>Seleccione una ficha</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="options-container">
-                                                            <div class="checkboxes">
-                                                                <div class="form-check">
-                                                                    <input type="checkbox" class="form-check-input" name="eventuales" id="eventuales">
-                                                                    <label for="eventuales" class="form-check-label">Solo eventuales</label>
-                                                                </div>
-                                                                <div class="form-check">
-                                                                    <input type="checkbox" class="form-check-input" name="bajas" id="bajas">
-                                                                    <label for="bajas" class="form-check-label">Incluir bajas</label>
-                                                                </div>
-                                                            </div>
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="bajas" id="bajas">
+                                                            <label for="bajas" class="form-check-label">Incluir bajas</label>
                                                         </div>
                                                     </div>
-                                                        <div class="ficha-depto bordered-container">
-                                                            <div class="form-check">
-                                                                <input type="radio" class="form-check-input" name="tipoConsulta" id="ficha" value="ficha" checked>
-                                                                <label for="ficha" class="form-check-label">Ficha</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input type="radio" class="form-check-input" name="tipoConsulta" id="depto" value="depto">
-                                                                <label for="depto" class="form-check-label">Depto.</label>
-                                                            </div>
+                                                </div>
+                                                    <!-- Sección Ficha/Depto. -->
+                                                    <div class="bordered-container">
+                                                        <div class="form-check">
+                                                            <input type="radio" class="form-check-input" name="tipoConsulta" id="ficha" value="ficha" checked>
+                                                            <label for="ficha" class="form-check-label">Ficha</label>
                                                         </div>
-                                        
-                                                <!-- Sección de Departamento -->
-                                                <h4>Por departamento:</h4>
-                                                <div class="departamento-container bordered-container">
+                                                        <div class="form-check">
+                                                            <input type="radio" class="form-check-input" name="tipoConsulta" id="depto" value="depto">
+                                                            <label for="depto" class="form-check-label">Depto.</label>
+                                                        </div>
+                                                    </div>
+                                            </div>
+                                            <!-- Sección de Departamento -->
+                                            <h4>Por departamento:</h4>
+                                                <div class="bordered-container">
                                                     <div class="form-group">
                                                         <label for="deptosSelect">Departamento: </label>
                                                         <select class="form-control form-control-sm w-auto" name="deptosSelect" id="deptosSelect" required>
@@ -363,10 +339,8 @@ if ($varsesion == null || $varsesion = '')
                                                         </select>
                                                     </div>
                                                 </div>
-                                            </div>
 
                                             <!-- Sección tipo -->
-                                            <div class="bordered-container">
                                                 <div class="radio-container">
                                                     <div class="form-check">
                                                         <input type="radio" class="form-check-input" name="tipo" id="confianza" value="confianza" checked>
@@ -385,7 +359,6 @@ if ($varsesion == null || $varsesion = '')
                                                         <label for="movilidad" class="form-check-label">Operativo de Movilidad y Transporte</label>
                                                     </div>
                                                 </div>
-                                            </div>
                                                 <!-- Sección de fecha y botones -->
                                                 <div class="bordered-container">
                                                     <div class="fecha-container"> 
@@ -409,27 +382,6 @@ if ($varsesion == null || $varsesion = '')
                                                         <label for="designacion" class="form-check-label">Designación Irrevocable</label>
                                                     </div>
                                                 </div>
-                                                <!-- Botón Aceptar -->
-                                                    <button type="submit" id="" class="btn custom-accept-btn align-self-start">
-                                                        <img src="../dist/img/aceptar.png" height="20px" class="me-2">
-                                                        Aceptar
-                                                    </button>
-                                                <!-- Columna derecha (Radios + Botón) -->
-                                                <div class="col-sm-2">
-                                                    <div class="d-flex flex-column align-items-start">
-                                                        <!-- Contenedor de radios -->
-                                                        <div class="radio-bordered-container" style="width: fit-content; min-width: 130px">
-                                                            <div class="form-check">
-                                                                <input type="radio" class="form-check-input" name="destino" id="pantalla" value="pantalla" checked>
-                                                                <label for="pantalla" class="form-check-label">Pantalla</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input type="radio" class="form-check-input" name="destino" id="impresora" value="impresora">
-                                                                <label for="impresora" class="form-check-label">Impresora</label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                 </div>
                             </div>
                             <br>
@@ -449,17 +401,36 @@ if ($varsesion == null || $varsesion = '')
                                         </tbody>
                                     </table>
                                 </div>
+                                
                                     <!-- Contenedor para alinear los botones a la derecha -->
                                     <div class="contenedor-botones">
-                                        <button type="submit" class="btn btn-default btn-md" id="imprimir">
-                                            <img src="../dist/img/impresora.png" height="30px"><br> Imprimir
-                                        </button>
-                                        <button type="submit" class="btn btn-default btn-md" id="seleccionar">
-                                            <img src="../dist/img/select_allpng.png" height="30px"><br> Selecc. todos
-                                        </button>
-                                        <button type="submit" class="btn btn-default btn-md" id="quitar">
-                                            <img src="../dist/img/quitar_todo.png" height="30px"><br> Quitar todos
-                                        </button>
+                                                    <!-- Botón Aceptar -->
+                                                    <button type="submit" id="" class="btn custom-accept-btn align-self-start">
+                                                        <img src="../dist/img/aceptar.png" height="20px" class="me-2">
+                                                        Aceptar
+                                                    </button>
+                                                    <div class="d-flex flex-column align-items-right">
+                                                        <!-- Contenedor de radios -->
+                                                        <div class="radio-bordered-container" style="width: fit-content; min-width: 130px">
+                                                            <div class="form-check">
+                                                                <input type="radio" class="form-check-input" name="destino" id="pantalla" value="pantalla" checked>
+                                                                <label for="pantalla" class="form-check-label">Pantalla</label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input type="radio" class="form-check-input" name="destino" id="impresora" value="impresora">
+                                                                <label for="impresora" class="form-check-label">Impresora</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <button type="submit" class="btn btn-default btn-md" id="imprimir">
+                                                    <img src="../dist/img/impresora.png" height="30px"><br> Imprimir
+                                                </button>
+                                                <button type="submit" class="btn btn-default btn-md" id="seleccionar">
+                                                    <img src="../dist/img/select_allpng.png" height="30px"><br> Selecc. todos
+                                                </button>
+                                                <button type="submit" class="btn btn-default btn-md" id="quitar">
+                                                    <img src="../dist/img/quitar_todo.png" height="30px"><br> Quitar todos
+                                                </button>
                                     </div>
                             </div>
 </form>
@@ -725,48 +696,90 @@ if ($varsesion == null || $varsesion = '')
 });
     </script>
     <script>
-        $('#imprimir').on('click', function(e) {
+        $('#imprimir').on('click', function (e) {
     e.preventDefault();
+
     const destino = $('input[name="destino"]:checked').val();
-    const imagenes = [
-        '../dist/img/frente_general.jpg',
-        '../dist/img/atras_general.jpg'
-    ];
+    const fechaPoliza = $('#fechaPoliza').val() || ''; // opcional
+
+    // Fichas seleccionadas desde la tabla
+    const fichasSeleccionadas = [];
+    $('input.print-checkbox:checked').each(function () {
+        const ficha = $(this).closest('tr').find('td:eq(1)').text().trim(); // Extraer la ficha de la columna 2
+        if (ficha) {
+            fichasSeleccionadas.push(ficha);
+        }
+    });
+
+    if (fichasSeleccionadas.length === 0) {
+        alert("Debes seleccionar al menos una ficha para imprimir.");
+        return;
+    }
+
+    // Formulario oculto
+    const form = $('<form>', {
+        action: 'poliza.php',
+        method: 'POST',
+        target: '_blank'
+    });
+
+    // Enviar fichas
+    fichasSeleccionadas.forEach(function (ficha) {
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'fichas[]',
+            value: ficha
+        }));
+    });
+
+    // Enviar si está marcada la designación irrevocable
+    const designacionMarcada = $('#designacion').is(':checked') ? 1 : 0;
+    form.append($('<input>', {
+        type: 'hidden',
+        name: 'designacion',
+        value: designacionMarcada
+    }));
+
+    // Enviar fecha de póliza si aplica
+    if (fechaPoliza) {
+        form.append($('<input>', {
+            type: 'hidden',
+            name: 'fechaPoliza',
+            value: fechaPoliza
+        }));
+    }
+
+    // Enviar destino (pantalla / impresora)
+    form.append($('<input>', {
+        type: 'hidden',
+        name: 'destino',
+        value: destino
+    }));
+
+    // Agregar el formulario al body
+    $('body').append(form);
 
     if (destino === 'pantalla') {
-        // Preview en ventana emergente
-        const previewWindow = window.open('', '_blank', 'width=800,height=600,top=100,left=100');
-        previewWindow.document.write(`
-            <html>
-                <head><title>Vista Previa</title></head>
-                <body style="margin: 0; text-align: center;">
-                    ${imagenes.map(img => `<img src="${img}" style="max-width: 100%; margin: 10px 0;">`).join('')}
-                </body>
-            </html>
-        `);
-    } else {
-        // Ventana emergente de impresión (popup)
-        const printPopup = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes,top=100,left=100');
-        printPopup.document.write(`
-            <html>
-                <head>
-                    <title>Imprimir</title>
-                    <style>
-                        @media print {
-                            @page { margin: 0; }
-                            body { margin: 1cm; }
-                            img { max-width: 100%; page-break-after: always; }
-                        }
-                    </style>
-                </head>
-                <body onload="window.print(); window.close();">
-                    ${imagenes.map(img => `<img src="${img}">`).join('')}
-                </body>
-            </html>
-        `);
-        printPopup.document.close();
+        // Si el destino es pantalla, abre una nueva ventana emergente para mostrar la póliza
+        const ventanaEmergente = window.open('', '_blank', 'width=800,height=600');
+        ventanaEmergente.document.write('<html><head><title>Póliza</title></head><body>');
+        ventanaEmergente.document.write(form[0].outerHTML);
+        ventanaEmergente.document.write('</body></html>');
+        ventanaEmergente.document.close();
+    } else if (destino === 'impresora') {
+        // Si el destino es impresora, abrir la página en nueva ventana y forzar la impresión
+        const ventanaEmergente = window.open('', '_blank', 'width=800,height=600');
+        ventanaEmergente.document.write('<html><head><title>Póliza</title></head><body>');
+        ventanaEmergente.document.write(form[0].outerHTML);
+        ventanaEmergente.document.write('</body></html>');
+        ventanaEmergente.document.close();
+        
+        // Después de que la ventana emergente se haya cargado, forzamos la impresión
+        ventanaEmergente.onload = function () {
+            ventanaEmergente.print();
+        };
     }
 });
-    </script>
+</script>
 </body>
 </html>
