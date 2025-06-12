@@ -16,6 +16,7 @@ function log_debug($message) {
     $nregistro = 0;
     log_debug("Iniciando generación de aguinaldo para grupo: $opcion");
     // Tabla de control
+    global $diasagui;
     $queryControl = " SELECT diaspago, salmindf, factorsdi, factimss1, factimss2, catproce, salminimo,ctrlVales, ctrlValesPoli, ctrlValesAytto, ppmavac, suticVales, diasplantilla, vacabase, vacasindi,
         diasagui, diasminagui,arcon, hrsextras, ppmadom FROM tblnomcontrol";
     $resultadoControl = sqlsrv_query($conn, $queryControl);
@@ -446,8 +447,9 @@ switch ($opcion) {
                 nuevoMovto($conn,$catproce, $cuentaEmpleado, $idendeptoEmpleado, $ficha,$noCantidad,$nImporteT,$nConcepto,$puestoEmpleado, $unidadEmpleado,$deptoEmpleado,$embargo);
             }
             $catorcena = $catproce;
+            $ncantidad = $diasagui;
             embargo($conn,$ficha,$empleado,$catproce, $catorcena,$newsalario,$newpercep,$newvales);
-            embargo_mercantil($conn, $ficha, $empleado, $catorcena, $nImporteT);
+            embargo_mercantil($conn, $ficha, $empleado, $catorcena, $nImporteT,$ncantidad);
         }
     }
     // Inserta movimientos
@@ -637,7 +639,7 @@ switch ($opcion) {
     }
     }
 
-    function embargo_mercantil($conn, $ficha, $filaEmpleado, $vNum_catorcena,$nimporteEdoCuenta)
+    function embargo_mercantil($conn, $ficha, $filaEmpleado, $catorcena,$nimporteEdoCuenta, $ncantidad)
     {
         $vcampo = '';
         $comp = 0;
@@ -646,9 +648,9 @@ switch ($opcion) {
         $row_count_edoc = sqlsrv_num_rows( $resultadoEdoCuenta );
         if ($row_count_edoc > 0 && $ncantidad > 0) 
         {
-            // $vcampo = 'Catorcena'.$catorcena;
-            $vcampo = 1;
-            $vNum_catorcena = 99;
+            $vcampo = 'Catorcena'.$catorcena;
+            // $vcampo = 1;
+            // $vNum_catorcena = 99;
         }
         if ($vcampo != '') 
         {
